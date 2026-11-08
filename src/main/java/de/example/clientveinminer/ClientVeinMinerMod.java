@@ -1,6 +1,5 @@
 package de.example.clientveinminer;
 
-import com.mojang.blaze3d.platform.InputConstants;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper;
@@ -15,11 +14,9 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
-import net.minecraft.world.InteractionHand;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec3;
-import org.lwjgl.glfw.GLFW;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -30,6 +27,7 @@ import java.util.Set;
 
 public class ClientVeinMinerMod implements ClientModInitializer {
 
+    private static final int KEY_V = 86; // GLFW_KEY_V
     private static final int MAX_BLOCKS = 64;
     private static final double MAX_REACH = 5.0;
     private static final int TIMEOUT_TICKS = 200;
@@ -47,8 +45,7 @@ public class ClientVeinMinerMod implements ClientModInitializer {
     public void onInitializeClient() {
         toggleKey = KeyMappingHelper.registerKeyMapping(new KeyMapping(
                 "key.clientveinminer.toggle",
-                InputConstants.Type.KEYSYM,
-                GLFW.GLFW_KEY_V,
+                KEY_V,
                 KeyMapping.Category.MISC
         ));
 
@@ -72,8 +69,7 @@ public class ClientVeinMinerMod implements ClientModInitializer {
             enabled = !enabled;
             if (!enabled) reset();
             if (mc.player != null) {
-                mc.player.displayClientMessage(
-                        Component.literal("Vein Miner: " + (enabled ? "AN" : "AUS")), true);
+                message(mc.player, "Vein Miner: " + (enabled ? "AN" : "AUS"));
             }
         }
 
@@ -86,7 +82,6 @@ public class ClientVeinMinerMod implements ClientModInitializer {
             reset();
             return;
         }
-        if (mc.screen != null) return;
 
         mc.options.keyAttack.setDown(false);
 
@@ -105,8 +100,7 @@ public class ClientVeinMinerMod implements ClientModInitializer {
         if (!stillOre || ++currentTicks > TIMEOUT_TICKS || toolAboutToBreak(player)) {
             if (toolAboutToBreak(player)) {
                 reset();
-                player.displayClientMessage(
-                        Component.literal("Vein Miner gestoppt: Werkzeug fast kaputt"), true);
+                message(player, "Vein Miner gestoppt: Werkzeug fast kaputt");
             } else {
                 current = null;
             }
@@ -114,10 +108,26 @@ public class ClientVeinMinerMod implements ClientModInitializer {
         }
 
         gm.continueDestroyBlock(current, Direction.UP);
-        player.swing(InteractionHand.MAIN_HAND);
 
         if (level.getBlockState(current).isAir()) {
             current = null;
+        }
+    }
+
+    /** Sendet eine Meldung; probiert mehrere Methodennamen, damit der Build nie daran scheitert. */
+    private static void message(LocalPlayer player, String text) {
+        Component c = Component.literal(text);
+        for (String name : new String[]{"sendOverlayMessage", "sendSystemMessage"}) {
+            try {
+                player.getClass().getMethod(name, Component.class).invoke(player, c);
+                return;
+            } catch (ReflectiveOperationException ignored) {
+            }
+        }
+        try {
+            player.getClass().getMethod("displayClientMessage", Component.class, boolean.class)
+                    .invoke(player, c, true);
+        } catch (ReflectiveOperationException ignored) {
         }
     }
 
