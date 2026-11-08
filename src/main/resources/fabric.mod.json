@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "id": "clientveinminer",
+  "version": "${version}",
+  "name": "Client Vein Miner",
+  "description": "Baut alle zusammenhängenden Erze ab, sobald eines abgebaut wird. Nur Client.",
+  "authors": ["Du"],
+  "license": "MIT",
+  "environment": "client",
+  "entrypoints": {
+    "client": ["de.example.clientveinminer.ClientVeinMinerMod"]
+  },
+  "depends": {
+    "fabricloader": ">=0.20.0",
+    "minecraft": "~26.3",
+    "java": ">=25",
+    "fabric-api": "*"
+  }
+}
